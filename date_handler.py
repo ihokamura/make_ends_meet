@@ -2,22 +2,55 @@
 handle date
 """
 
+import calendar
 from collections import namedtuple
 from datetime import date
 
 
-# span of date
-Span = namedtuple('Span', 'start stop')
-
-class Period:
+class Span(namedtuple('Span', 'start stop')):
     """
-    generator which periodically yields spans
+    represent span of date
 
     # Attributes
-    * begin : date
-        begin of the generation
-    * end : date
-        end of the generation
+    * start : datetime.date
+    * stop : datetime.date
+    """
+
+    def __str__(self):
+        delta = self.stop - self.start
+        if delta == 0*date.resolution:
+            # a day span
+            day = self.start.isoformat().replace('-', '/')
+            return day
+        elif delta == 6*date.resolution:
+            # a week span
+            start = self.start.isoformat()[5:].replace('-', '/')
+            stop = self.stop.isoformat()[5:].replace('-', '/')
+            return start + '-' + stop
+        elif delta == (calendar.monthrange(self.start.year, self.start.month)[1] - 1)*date.resolution:
+            # a month span
+            month = self.start.isoformat()[:7].replace('-', '/')
+            return month
+        elif delta == (364 + calendar.isleap(self.start.year))*date.resolution:
+            # a year span
+            year = self.start.isoformat()[:4]
+            return year
+        else:
+            # default
+            start = self.start.isoformat().replace('-', '/')
+            stop = self.stop.isoformat().replace('-', '/')
+            return start + '-' + stop
+
+
+class Duration:
+    """
+    yield spans periodically
+
+    # Attributes
+    * begin : datetime.date
+        begin of the duration
+    * end : datetime.date
+        end of the duration
     * period : str
         period of spans
         One of the following is allowed.
@@ -26,156 +59,154 @@ class Period:
         * 'week'
         * 'day'
     """
+
+    # dictionary mapping period to generator function
+    _span_generators = dict()
 
     def __init__(self, begin, end, period='month'):
+        if begin > end:
+            raise ValueError('begin must be less than or equal to end')
         self.begin = begin
         self.end = end
+
+        try:
+            self._generate_span = self._span_generators[period]
+        except:
+            raise ValueError('invalid literal for period: \'{p}\''.format(p=period))
         self.period = period
-        self._yield_func = YIELD_FUNC_DICT[period]
 
     def __iter__(self):
-        return self._yield_func(self.begin, self.end)
+        return self._generate_span(self.begin, self.end)
 
-
-# dictionary mapping period to generator function
-YIELD_FUNC_DICT = dict()
-def register_yield_func(period):
-    """
-    register a generator function which yields a span
-
-    # Parameters
-    * period : str
-        period of spans
-        One of the following is allowed.
-        * 'year'
-        * 'month'
-        * 'week'
-        * 'day'
-
-    # Returns
-    * decorate
-        function object which actually registers the generator function
-    """
-
-    def decorate(yield_func):
+    @classmethod
+    def span_generator(cls, period):
         """
-        decorator to register a generator function
+        register a generator function which yields spans
 
         # Parameters
-        * yield_func
-            generator function which yields a Span object
+        * period : str
+            period of spans
 
         # Returns
-        * None
+        * register : function
+            function object which actually registers the generator function
         """
 
-        YIELD_FUNC_DICT[period] = yield_func
+        def register(span_generator):
+            """
+            register a generator function
 
-    return decorate
+            # Parameters
+            * span_generator
+                generator function which yields a Span object
+
+            # Returns
+            * None
+            """
+
+            cls._span_generators[period] = span_generator
+
+        return register
 
 
-@register_yield_func('year')
-def yield_span_year(begin, end):
+@Duration.span_generator('year')
+def generate_year_span(begin, end):
     """
     yield spans in a year period
 
     # Parameters
-    * begin : date
-        begin of the generation
-    * end : date
-        end of the generation
+    * begin : datetime.date
+        begin of the duration
+    * end : datetime.date
+        end of the duration
 
     # Yields
     * _ : Span
-        spans within the range in a year period
+        spans within the duration in a year period
     """
 
-    y = begin.year
+    start = date(begin.year, 1, 1)
     while True:
-        start = date(y, 1, 1)
-        stop = date(y + 1, 1, 1) - date.resolution
+        stop = date(start.year, 12, 31)
 
         yield Span(start, stop)
 
-        if end < stop:
-            break
-        else:
-            y = y + 1
-
-
-@register_yield_func('month')
-def yield_span_month(begin, end):
-    """
-    yield spans in a month period
-
-    # Parameters
-    * begin : date
-        begin of the generation
-    * end : date
-        end of the generation
-
-    # Yields
-    * _ : Span
-        spans within the range in a month period
-    """
-
-    y, m = begin.year, begin.month
-    while True:
-        start = date(y, m, 1)
-        if m == 12:
-            y, m = y + 1, 1
-        else:
-            m = m + 1
-        stop = date(y, m, 1) - date.resolution
-
-        yield Span(start, stop)
-
-        if end < stop:
-            break
-
-
-@register_yield_func('week')
-def yield_span_week(begin, end):
-    """
-    yield spans in a week period
-
-    # Parameters
-    * begin : date
-        begin of the generation
-    * end : date
-        end of the generation
-
-    # Yields
-    * _ : Span
-        spans within the range in a week period
-    """
-
-    start = begin - date.resolution * begin.weekday()
-    while True:
-        stop = start + date.resolution * 6
-
-        yield Span(start, stop)
-
-        if end < stop:
+        if stop >= end:
             break
         else:
             start = stop + date.resolution
 
 
-@register_yield_func('day')
-def yield_span_day(begin, end):
+@Duration.span_generator('month')
+def generate_month_span(begin, end):
+    """
+    yield spans in a month period
+
+    # Parameters
+    * begin : datetime.date
+        begin of the duration
+    * end : datetime.date
+        end of the duration
+
+    # Yields
+    * _ : Span
+        spans within the duration in a month period
+    """
+
+    start = date(begin.year, begin.month, 1)
+    while True:
+        stop = start + (calendar.monthrange(start.year, start.month)[1] - 1)*date.resolution
+
+        yield Span(start, stop)
+
+        if stop >= end:
+            break
+        else:
+            start = stop + date.resolution
+
+
+@Duration.span_generator('week')
+def generate_week_span(begin, end):
+    """
+    yield spans in a week period
+
+    # Parameters
+    * begin : datetime.date
+        begin of the duration
+    * end : datetime.date
+        end of the duration
+
+    # Yields
+    * _ : Span
+        spans within the duration in a week period
+    """
+
+    start = begin - begin.weekday()*date.resolution
+    while True:
+        stop = start + 6*date.resolution
+
+        yield Span(start, stop)
+
+        if stop >= end:
+            break
+        else:
+            start = stop + date.resolution
+
+
+@Duration.span_generator('day')
+def generate_day_span(begin, end):
     """
     yield spans in a day period
 
     # Parameters
-    * begin : date
-        begin of the generation
-    * end : date
-        end of the generation
+    * begin : datetime.date
+        begin of the duration
+    * end : datetime.date
+        end of the duration
 
     # Yields
     * _ : Span
-        spans within the range in a day period
+        spans within the duration in a day period
     """
 
     start = begin
@@ -184,7 +215,7 @@ def yield_span_day(begin, end):
 
         yield Span(start, stop)
 
-        if end < stop:
+        if stop >= end:
             break
         else:
             start = stop + date.resolution

@@ -2,66 +2,57 @@
 manage account book
 """
 
-import csv
 from collections import namedtuple
-from datetime import date
+import csv
+import datetime
+from shutil import copyfile
 
-from date_handler import Period, Span
+from date_handler import Duration, Span
 
 
 class Entry(namedtuple('Entry', 'date, income, outgo, groups')):
     """
-    entry of account book
+    represent entry of account book
     
     # Attributes
-    * date : date (from datetime)
+    * date : datetime.date
     * income : int
     * outgo : int
-    * groups : list
-        list of groups related to the entry
+    * groups : tuple
+        tuple of groups related to the entry
     """
 
     def __repr__(self):
         return 'Entry(date={date}, income={income}, outgo={outgo}, groups={groups})'.format( 
             date=self.date.isoformat(), income=self.income, outgo=self.outgo, groups=self.groups)
 
-
-    def filter_duration(self, begin=None, end=None):
+    def is_in_span(self, span):
         """
-        filter Entry by duration
+        indicate if Entry is in span
 
         # Parameters
-        * begin : date
-            begin of the duration
-            If None, it is ignored.
-        * end : date
-            end of the duration
-            If None, it is ignored.
+        * span : date_handler.Span
+            span to check the entry
 
         # Returns
         * _ : bool
             indicator if the condition is satisfied
         """
 
-        if begin is None:
-            begin = date.min
-        if end is None:
-            end = date.max
-        
-        return begin <= self.date <= end
+        return span.start <= self.date <= span.stop
 
-
-    def filter_groups(self, groups=None):
+    def is_in_groups(self, groups=None):
         """
-        helper function to filter by groups
+        indicate if Entry is in groups
 
         # Parameters
-        * groups : list
-            list of groups to specify entries
+        * groups : iterable
+            groups to check the entry
 
         # Returns
         * _ : bool
             indicator if the condition is satisfied
+            If `groups` is `None`, the function returns `True`.
         """
 
         if groups is None:
@@ -70,28 +61,7 @@ class Entry(namedtuple('Entry', 'date, income, outgo, groups')):
             return all(group_self == group_arg for group_self, group_arg in zip(self.groups, groups))               
 
 
-class SummaryData(namedtuple('SummaryData', 'span income outgo balance')):
-    """
-    summary data of account book within a span
-
-    # Attributes
-    * span : Span
-        span of the summary data
-    * income : int
-        total income of the span
-    * outgo : int
-        total outgoing of the span
-    * balance : int
-        total balance of the span
-    """
-
-    def __repr__(self):
-        span = 'from {start} to {stop}'.format(
-            start=self.span.start.isoformat(), stop=self.span.stop.isoformat())
-        data = 'income={income:7d} / outgo={outgo:7d} / balance={balance:7d}'.format(
-            income=self.income, outgo=self.outgo, balance=self.balance)
-
-        return span + ' : ' + data
+SummaryData = namedtuple('SummaryData', 'span amount')
 
 
 class AccountBook:
@@ -99,77 +69,107 @@ class AccountBook:
     account book
 
     # Attributes
-    * entries : list
-        list of entries, whose type is Entry
+    * entries : iterable
+        entries of account book, whose type is Entry
     """
 
     def __init__(self, entries):
         self.entries = list(entries)
-        self._min_date = min(entry.date for entry in self)
-        self._max_date = max(entry.date for entry in self)
-    
-    def __getitem__(self, position):
-        return self.entries[position]
+        self._sum_category = {'income':self._sum_income, 'outgo':self._sum_outgo, 'balance':self._sum_balance}
 
+    def __iter__(self):
+        return iter(self.entries)
 
-    def summarize(self, begin=None, end=None, groups=None, period='month'):
+    @classmethod
+    def fromfile(cls, file):
         """
-        summarize the account book
+        construct from a file
 
         # Parameters
-        * begin : date
-            begin of the range
-            If None, it is ignored.
-        * end : date
-            end of the range
-            If None, it is ignored.
-        * groups : list
-            list of groups to filter
-            If None, it is ignored.
-        * bundle : str
-            period of data span
-            One of the following is allowed.
-                * 'year'
-                * 'month'
-                * 'week'
-                * 'day'
+        * file : str
+            name of the file
 
         # Returns
-        * summary : list
-            summary of the account book as a list of SummaryData
+        * book : AccountBook
+            AccountBook object corresponding to the file
         """
 
-        if begin is None:
-            begin = self._min_date
-        if end is None:
-            end = self._max_date
+        # copy the original file for fail-safe
+        TMP_FILE = 'tmp.csv'
+        copyfile(file, TMP_FILE)
 
-        summary = []
-        for span in Period(begin, end, period):
-            start, stop = span
-            income = self.sum_income(start, stop, groups)
-            outgo = self.sum_outgo(start, stop, groups)
-            balance = self.sum_balance(start, stop, groups)
+        with open(file=TMP_FILE, mode='r', encoding='utf-8') as fileobj:
+            entry = cls._generate_entries(fileobj)
+            book = cls(entry)
 
-            data = SummaryData(span, income, outgo, balance)
-            summary.append(data)
+        return book
 
-        return summary
-
-
-    def sum_income(self, begin=None, end=None, groups=None):
+    @classmethod
+    def _generate_entries(cls, fileobj):
         """
-        compute sum of income within a given range specified by groups
+        generate entries from a file
+        
+        # Parameters
+        fileobj : file-like
+            file-like object of csv file
+        
+        # Yields
+        _ : Entry
+            entries of account book
+        """
+
+        reader = csv.reader(fileobj)
+
+        # get indices from header
+        header = next(reader)
+        INDEX_DATE = header.index('日付')
+        INDEX_INCOME = header.index('収入金額')
+        INDEX_OUTGO = header.index('支出金額')
+        INDEX_GROUP1 = header.index('大分類')
+        INDEX_GROUP2 = header.index('小分類')
+
+        # read each rows to yield entries of account book
+        for row in reader:
+            date = datetime.date.fromisoformat(row[INDEX_DATE])
+            income = int(row[INDEX_INCOME])
+            outgo = int(row[INDEX_OUTGO])
+            groups = tuple(row[i] for i in (INDEX_GROUP1, INDEX_GROUP2))
+
+            yield Entry(date, income, outgo, groups)
+
+    def summarize_by_category(self, duration, category):
+        """
+        summarize the account book by category
 
         # Parameters
-        * begin : date
-            begin of the range
-            If None, it is ignored.
-        * end : date
-            end of the range
-            If None, it is ignored.
-        * groups : list
-            list of groups to filter
+        * duration : date_handler.Duration
+            duration of summary
+        * category : str
+            category of summary
+            One of the following is allowed.
+            * 'income'
+            * 'outgo'
+            * 'balance'
+
+        # Yields
+        * _ : SummaryData
+            summary data of the account book within the duration
+        """
+
+        sum_category = self._sum_category[category]
+        for span in duration:
+            amount = sum_category(span)
+            yield SummaryData(span, amount)
+
+    def _sum_income(self, span, groups=None):
+        """
+        compute sum of income filtered by span and groups
+
+        # Parameters
+        * span : date_handler.Span
+            span to filter entries
+        * groups : tuple
+            tuple of groups to filter entries
             If None, it is ignored.
 
         # Returns
@@ -177,22 +177,19 @@ class AccountBook:
             sum of income of all the entries satisfying the condition
         """
 
-        return sum(entry.income for entry in self if entry.filter_duration(begin, end) and entry.filter_groups(groups))
+        return sum(
+            entry.income for entry in self
+            if entry.is_in_span(span) and entry.is_in_groups(groups))
 
-
-    def sum_outgo(self, begin=None, end=None, groups=None):
+    def _sum_outgo(self, span, groups=None):
         """
-        compute sum of outgo within a given range specified by groups
+        compute sum of outgo filtered by span and groups
 
         # Parameters
-        * begin : date
-            begin of the range
-            If None, it is ignored.
-        * end : date
-            end of the range
-            If None, it is ignored.
-        * groups : list
-            list of groups to filter
+        * span : date_handler.Span
+            span to filter entries
+        * groups : tuple
+            tuple of groups to filter entries
             If None, it is ignored.
 
         # Returns
@@ -200,22 +197,19 @@ class AccountBook:
             sum of outgo of all the entries satisfying the condition
         """
 
-        return sum(entry.outgo for entry in self if entry.filter_duration(begin, end) and entry.filter_groups(groups))
+        return sum(
+            entry.outgo for entry in self
+            if entry.is_in_span(span) and entry.is_in_groups(groups))
 
-
-    def sum_balance(self, begin=None, end=None, groups=None):
+    def _sum_balance(self, span, groups=None):
         """
-        compute sum of balance within a given range specified by groups
+        compute sum of balance filtered by span and groups
 
         # Parameters
-        * begin : date
-            begin of the range
-            If None, it is ignored.
-        * end : date
-            end of the range
-            If None, it is ignored.
-        * groups : list
-            list of groups to filter
+        * span : date_handler.Span
+            span to filter entries
+        * groups : tuple
+            tuple of groups to filter entries
             If None, it is ignored.
 
         # Returns
@@ -223,60 +217,6 @@ class AccountBook:
             sum of balance (income minus outgo) of all the entries satisfying the condition
         """
 
-        return sum(entry.income - entry.outgo for entry in self if entry.filter_duration(begin, end) and entry.filter_groups(groups))
-
-
-def get_entries(fileobj):
-    """
-    get entries from a csv file
-    
-    # Parameters
-    fileobj : file-like
-        file-like object of csv file
-    
-    # Returns
-    entries : list
-        list of entries obtained from the csv file
-    """
-
-    entries = []
-    read_title = False
-    reader = csv.reader(fileobj)
-    for row in reader:
-        if not read_title:
-            INDEX_DATE = row.index('日付')
-            INDEX_INCOME = row.index('収入金額')
-            INDEX_OUTGO = row.index('支出金額')
-            INDEX_GROUP1 = row.index('大分類')
-            INDEX_GROUP2 = row.index('小分類')
-            read_title = True
-        else:
-            date = get_date(row[INDEX_DATE])
-            income = int(row[INDEX_INCOME])
-            outgo = int(row[INDEX_OUTGO])
-            groups = [row[INDEX_GROUP1], row[INDEX_GROUP2]]
-
-            entry = Entry(date, income, outgo, groups)
-            entries.append(entry)
-
-    return entries
-
-
-def get_date(isoformat_date):
-    """
-    get date object from isoformat string
-
-    # Parameters
-    * isoformat_date : str
-        isoformat date string (i.e. 'YYYY-MM-DD')
-
-    # Returns
-    * - : date
-        date object corresponding to the input
-    """
-
-    year = int(isoformat_date[0:4])
-    month = int(isoformat_date[5:7])
-    day = int(isoformat_date[8:10])
-
-    return date(year, month, day)
+        return sum(
+            entry.income - entry.outgo for entry in self
+            if entry.is_in_span(span) and entry.is_in_groups(groups))

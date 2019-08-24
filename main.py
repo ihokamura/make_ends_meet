@@ -1,59 +1,53 @@
 """
-main of the application
+run the application
 """
 
-from datetime import date
-from shutil import copyfile
-
-from account_book import AccountBook, get_entries
+from cli import CliApp
+# from gui import GuiApp
 
 
-def prepare_AccountBook(filename):
+class App:
     """
-    prepare workspace for a given csv file
+    wrap difference of user interface
+
+    # Attributes
+    * app_type : str
+        type of the application
+        One of the following is allowed.
+        * 'cli'
+        * 'gui'
+    """
+
+    def __init__(self, app_type='gui'):
+#       if app_type == 'cli':
+#           self.app = CliApp()
+#       else:
+#          self.app = GuiApp()
+        self.app = CliApp()
+
+    def run(self):
+        """
+        run the application
+        """
+
+        self.app.run()
+
+
+def main(app_type='gui'):
+    """
+    run the application
 
     # Parameters
-    * filename : str
-        name of input csv file
-
-    # Returns
-    * book : AccountBook
-        AccountBook object corresponding to the csv file
-    """
-
-    TMP_FILE_NAME = "tmp.csv"
-    copyfile(filename, TMP_FILE_NAME)
-
-    with open(file=TMP_FILE_NAME, mode='r', encoding='utf-8') as fileobj:
-        entry = get_entries(fileobj)
-        book = AccountBook(entry)
-
-    return book
-
-
-def main():
-    """
-    main function of the application
-
-    # Parameters
-    * (no parameters)
+    * app_type : str
+        type of the application
 
     # Returns
     * None
     """
 
-    SRC_FILE_NAME = "source_data.csv"
-    book = prepare_AccountBook(SRC_FILE_NAME)
-
-    begin = date(2019,1,1)
-    end = None
-    groups = None
-    period = 'month'
- 
-    summary = book.summarize(begin, end, groups, period)
-    for data in summary:
-        print(data)
+    app = App(app_type)
+    app.run()
 
 
 if __name__ == '__main__':
-    main()
+    main(app_type='cli')
