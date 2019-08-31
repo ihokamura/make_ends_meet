@@ -16,30 +16,19 @@ class Span(namedtuple('Span', 'start stop')):
     * stop : datetime.date
     """
 
-    def __str__(self):
-        delta = self.stop - self.start
-        if delta == 0*date.resolution:
-            # a day span
-            day = self.start.isoformat().replace('-', '/')
-            return day
-        elif delta == 6*date.resolution:
-            # a week span
+    def __format__(self, format_spec):
+        if format_spec == 'year':
+            return str(self.start.isoformat()[:4])
+        elif format_spec == 'month':
+            return str(self.start.isoformat()[2:7].replace('-', '/'))
+        elif format_spec == 'week':
             start = self.start.isoformat()[5:].replace('-', '/')
             stop = self.stop.isoformat()[5:].replace('-', '/')
             return start + '-' + stop
-        elif delta == (calendar.monthrange(self.start.year, self.start.month)[1] - 1)*date.resolution:
-            # a month span
-            month = self.start.isoformat()[:7].replace('-', '/')
-            return month
-        elif delta == (364 + calendar.isleap(self.start.year))*date.resolution:
-            # a year span
-            year = self.start.isoformat()[:4]
-            return year
+        elif format_spec == 'day':
+            return str(self.start.isoformat()[5:].replace('-', '/'))
         else:
-            # default
-            start = self.start.isoformat().replace('-', '/')
-            stop = self.stop.isoformat().replace('-', '/')
-            return start + '-' + stop
+            raise ValueError('Invalid format specifier')
 
 
 class Duration:

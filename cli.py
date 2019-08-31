@@ -45,8 +45,8 @@ class CliApp:
 
             ruled_line = '-' * 20
             print(ruled_line)
-            for summary in self.book.summarize_by_category(duration, category):
-                print('{span} {amount:7d}'.format(span=str(summary.span), amount=summary.amount))
+            for span, amount in zip(duration, self.book.summarize_by_category(duration, category)):
+                print(format(span, duration.period) + format(amount, '7d'))
             print(ruled_line)
 
             print('Continue?')

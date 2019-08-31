@@ -2,8 +2,10 @@
 run the application
 """
 
+import sys
+
 from cli import CliApp
-# from gui import GuiApp
+from gui import GuiApp
 
 
 class App:
@@ -18,12 +20,11 @@ class App:
         * 'gui'
     """
 
-    def __init__(self, app_type='gui'):
-#       if app_type == 'cli':
-#           self.app = CliApp()
-#       else:
-#          self.app = GuiApp()
-        self.app = CliApp()
+    def __init__(self, app_type='cli'):
+        if app_type == 'cli':
+            self.app = CliApp()
+        else:
+           self.app = GuiApp()
 
     def run(self):
         """
@@ -33,7 +34,7 @@ class App:
         self.app.run()
 
 
-def main(app_type='gui'):
+def main(app_type):
     """
     run the application
 
@@ -49,5 +50,17 @@ def main(app_type='gui'):
     app.run()
 
 
+# message for a wrong option
+USAGE = """
+Usage: python3 main.py [cli|gui]
+Option:
+    cli: CLI version of the application
+    gui: GUI version of the application
+"""
+
 if __name__ == '__main__':
-    main(app_type='cli')
+    app_type = sys.argv[-1]
+    if app_type in ('cli', 'gui'):
+        main(app_type)
+    else:
+        print(USAGE)

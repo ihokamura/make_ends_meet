@@ -158,8 +158,7 @@ class AccountBook:
 
         sum_category = self._sum_category[category]
         for span in duration:
-            amount = sum_category(span)
-            yield SummaryData(span, amount)
+            yield sum_category(span)
 
     def _sum_income(self, span, groups=None):
         """
