@@ -51,12 +51,12 @@ def main(app_type):
 
 
 # message for a wrong option
-USAGE = """
+USAGE = '''
 Usage: python3 main.py [cli|gui]
 Option:
     cli: CLI version of the application
     gui: GUI version of the application
-"""
+'''
 
 if __name__ == '__main__':
     app_type = sys.argv[-1]
