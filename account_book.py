@@ -2,66 +2,10 @@
 manage account book
 """
 
-from collections import namedtuple
-import csv
-import datetime
-from shutil import copyfile
+from collections import defaultdict
 
+from data_manager import generate_entries
 from date_handler import Duration, Span
-
-
-class Entry(namedtuple('Entry', 'date, income, outgo, groups')):
-    """
-    represent entry of account book
-    
-    # Attributes
-    * date : datetime.date
-    * income : int
-    * outgo : int
-    * groups : tuple
-        tuple of groups related to the entry
-    """
-
-    def __repr__(self):
-        return 'Entry(date={date}, income={income}, outgo={outgo}, groups={groups})'.format( 
-            date=self.date.isoformat(), income=self.income, outgo=self.outgo, groups=self.groups)
-
-    def is_in_span(self, span):
-        """
-        indicate if Entry is in span
-
-        # Parameters
-        * span : date_handler.Span
-            span to check the entry
-
-        # Returns
-        * _ : bool
-            indicator if the condition is satisfied
-        """
-
-        return span.start <= self.date <= span.stop
-
-    def is_in_groups(self, groups=None):
-        """
-        indicate if Entry is in groups
-
-        # Parameters
-        * groups : iterable
-            groups to check the entry
-
-        # Returns
-        * _ : bool
-            indicator if the condition is satisfied
-            If `groups` is `None`, the function returns `True`.
-        """
-
-        if groups is None:
-            return True
-        else:
-            return all(group_self == group_arg for group_self, group_arg in zip(self.groups, groups))               
-
-
-SummaryData = namedtuple('SummaryData', 'span amount')
 
 
 class AccountBook:
@@ -70,7 +14,7 @@ class AccountBook:
 
     # Attributes
     * entries : iterable
-        entries of account book, whose type is Entry
+        entries of account book, whose type is data_manager.Entry
     """
 
     def __init__(self, entries):
@@ -90,52 +34,11 @@ class AccountBook:
             name of the file
 
         # Returns
-        * book : AccountBook
+        * _ : AccountBook
             AccountBook object corresponding to the file
         """
 
-        # copy the original file for fail-safe
-        TMP_FILE = 'tmp.csv'
-        copyfile(file, TMP_FILE)
-
-        with open(file=TMP_FILE, mode='r', encoding='utf-8') as fileobj:
-            entry = cls._generate_entries(fileobj)
-            book = cls(entry)
-
-        return book
-
-    @classmethod
-    def _generate_entries(cls, fileobj):
-        """
-        generate entries from a file
-        
-        # Parameters
-        fileobj : file-like
-            file-like object of csv file
-        
-        # Yields
-        _ : Entry
-            entries of account book
-        """
-
-        reader = csv.reader(fileobj)
-
-        # get indices from header
-        header = next(reader)
-        INDEX_DATE = header.index('日付')
-        INDEX_INCOME = header.index('収入金額')
-        INDEX_OUTGO = header.index('支出金額')
-        INDEX_GROUP1 = header.index('大分類')
-        INDEX_GROUP2 = header.index('小分類')
-
-        # read each rows to yield entries of account book
-        for row in reader:
-            date = datetime.date.fromisoformat(row[INDEX_DATE])
-            income = int(row[INDEX_INCOME])
-            outgo = int(row[INDEX_OUTGO])
-            groups = tuple(row[i] for i in (INDEX_GROUP1, INDEX_GROUP2))
-
-            yield Entry(date, income, outgo, groups)
+        return cls(generate_entries(file))
 
     def summarize_by_category(self, duration, category):
         """
@@ -152,13 +55,34 @@ class AccountBook:
             * 'balance'
 
         # Yields
-        * _ : SummaryData
-            summary data of the account book within the duration
+        * _ : int
+            sum of the category within the duration
         """
 
         sum_category = self._sum_category[category]
         for span in duration:
             yield sum_category(span)
+
+    def get_breakdown(self, span):
+        """
+        get breakdown within the span
+
+        # Parameters
+        * span : date_handler.Span
+            span of breakdown
+
+        # Returns
+        * breakdown : collections.defaultdict
+            dictionary mapping group to amount within the span
+        """
+
+        breakdown = defaultdict(int)
+
+        for entry in self:
+            if span.start <= entry.date <= span.stop:
+                breakdown[entry.groups[0]] += (entry.income + entry.outgo)
+
+        return breakdown
 
     def _sum_income(self, span, groups=None):
         """

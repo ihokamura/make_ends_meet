@@ -9,17 +9,18 @@ import os
 
 # suppress kivy log
 os.environ['KIVY_NO_FILELOG'] = '1'
-os.environ['KIVY_NO_CONSOLELOG'] = '1'
-
+#os.environ['KIVY_NO_CONSOLELOG'] = '1'
 from kivy.app import App
 from kivy.base import Builder
 from kivy.clock import Clock
 from kivy.event import EventDispatcher
-from kivy.graphics import Color, Line, Rotate
-from kivy.properties import ListProperty, NumericProperty
+from kivy.graphics import Color, Line
+from kivy.properties import ListProperty, NumericProperty, ObjectProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
+from kivy.uix.popup import Popup
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
@@ -162,7 +163,7 @@ class BalanceChart(Widget):
         self.duration = date_handler.Duration(begin, end, period)
         self.update_chart()
 
-    def update_category(self, *args, category):
+    def update_category(self, dispatcher, *, category):
         """
         update category
 
@@ -192,10 +193,10 @@ class BalanceChart(Widget):
             mapping = {'year':5, 'month':6, 'week':5, 'day':7}
             num_of_data = mapping[self.duration.period]
 
-        labels = list(format(span, self.duration.period) for span in self.duration)[-num_of_data:]
+        spans = list(span for span in self.duration)[-num_of_data:]
         amounts = list(self.book.summarize_by_category(self.duration, self.category))[-num_of_data:]
 
-        self.display.plot_chart(labels, amounts)
+        self.display.plot_chart(spans, amounts)
 
 
 class DateRange(BoxLayout):
@@ -223,7 +224,8 @@ class DateRange(BoxLayout):
             else:
                 self.begin.date = self.end.date
 
-        self.parent.parent.parent.updater.dispatch('on_date_range', begin=self.begin.date, end=self.end.date)
+        updater = App.get_running_app().balance_chart.updater
+        updater.dispatch('on_date_range', begin=self.begin.date, end=self.end.date)
 
 
 class DateSelector(Widget):
@@ -389,7 +391,8 @@ class CategoryToggle(ToggleButton):
     def on_state(self, instance, value):
         if value == 'down':
             # invoke callback to update category
-            self.parent.parent.parent.parent.updater.dispatch('on_category', category=self.text)
+            updater = App.get_running_app().balance_chart.updater
+            updater.dispatch('on_category', category=self.text)
 
 
 class PeriodSelector(BoxLayout):
@@ -445,7 +448,8 @@ class PeriodToggle(ToggleButton):
     def on_state(self, instance, value):
         if value == 'down':
             # invoke callback to update category
-            self.parent.parent.parent.parent.updater.dispatch('on_period', period=self.text)
+            updater = App.get_running_app().balance_chart.updater
+            updater.dispatch('on_period', period=self.text)
 
 
 class Display(FloatLayout):
@@ -456,13 +460,13 @@ class Display(FloatLayout):
     def __init__(self, **kwargs):
         super(Display, self).__init__(**kwargs)
 
-    def plot_chart(self, labels, values):
+    def plot_chart(self, spans, values):
         """
         plot bar chart to display change of amounts
 
         # Parameters
-        * labels : list
-            list of labels
+        * spans : list
+            list of spans
         * values : list
             list of values
 
@@ -504,18 +508,19 @@ class Display(FloatLayout):
         grid_values = list(range(start, stop, step))
 
         # update display
-        self.x_axis.labels = labels
+        period = App.get_running_app().balance_chart.duration.period
+        self.x_axis.labels = list(format(span, period) for span in spans)
         self.y_axis.grid_values = grid_values
         self.plot_area.grid_values = grid_values
-        self.plot_area.plot_values = values
+        self.plot_area.plot_points = list(zip(spans, values))
 
 
 class XAxis(BoxLayout):
     """
     widget for x-axis
 
-    # Properties
-    * labels : list
+    # Attributes
+    * labels : ListProperty
         list of labels
     """
 
@@ -528,20 +533,20 @@ class XAxis(BoxLayout):
     def on_labels(self, instance, value):
         # remove all Label objects to update labels
         self.clear_widgets()
-        for l in self.labels:
-            self.add_widget(Label(text=l))
+
+        for label in self.labels:
+            label_widget = Label(text=label)
+            self.add_widget(label_widget)
 
 
 class YAxis(Widget):
     """
     widget for y-axis
 
-    # Properties
-    * grid_values : list
-        list of grid values
-
     # Attributes
-    * labels : dict
+    * grid_values : ListProperty
+        list of grid values
+    * label_widgets : dict
         dictionary mapping grid value to Label object
     """
 
@@ -549,7 +554,7 @@ class YAxis(Widget):
 
     def __init__(self, **kwargs):
         super(YAxis, self).__init__(**kwargs)
-        self.labels = dict()
+        self.label_widgets = dict()
 
     def on_size(self, instance, value):
         self._update()
@@ -557,10 +562,12 @@ class YAxis(Widget):
     def on_grid_values(self, instance, value):
         # remove all Label objects to update scales
         self.clear_widgets()
+        self.label_widgets.clear()
+
         for gv in self.grid_values:
-            label = Label(text=str(gv))
-            self.add_widget(label)
-            self.labels[gv] = label
+            label_widget = Label(text=str(gv))
+            self.add_widget(label_widget)
+            self.label_widgets[gv] = label_widget
         self._update()
 
     def _update(self):
@@ -575,26 +582,24 @@ class YAxis(Widget):
         """
 
         for gv in self.grid_values:
-            self.labels[gv].center_x = self.center_x
-            self.labels[gv].center_y = self.y + self.height*(gv - self.grid_values[0])/(self.grid_values[-1] - self.grid_values[0])
+            self.label_widgets[gv].center_x = self.center_x
+            self.label_widgets[gv].center_y = self.y + self.height*(gv - self.grid_values[0])/(self.grid_values[-1] - self.grid_values[0])
 
 
 class PlotArea(BoxLayout):
     """
     widget for y-axis
 
-    # Properties
-    * plot_values : list
-        list of plot values
-    * grid_values : list
-        list of grid values
-
     # Attributes
+    * plot_points : ListProperty
+        list of plot points
+    * grid_values : ListProperty
+        list of grid values
     * lines : dict
         dictionary mapping grid value to Line object
     """
 
-    plot_values = ListProperty(list())
+    plot_points = ListProperty(list())
     grid_values = ListProperty(list())
 
     def __init__(self, **kwargs):
@@ -605,17 +610,19 @@ class PlotArea(BoxLayout):
     def on_size(self, instance, value):
         self._update()
 
-    def on_plot_values(self, instance, value):
-        # remove all Bar objects to update bars
+    def on_plot_points(self, instance, value):
+        # remove all Bar objects to update chart
         self.clear_widgets()
-        for v in self.plot_values:
+
+        for span, v in self.plot_points:
             origin = -self.grid_values[0]/(self.grid_values[-1] - self.grid_values[0])
             value = v/(self.grid_values[-1] - self.grid_values[0])
-            self.add_widget(Bar(origin=origin, value=value))
+            self.add_widget(Bar(span=span, origin=origin, value=value))
 
     def on_grid_values(self, instance, value):
         # clear canvas to update grid lines
         self.canvas.clear()
+
         with self.canvas:
             Color(rgba=(0, 1, 1, 1))
             for gv in self.grid_values:
@@ -653,15 +660,108 @@ class Bar(Widget):
     origin = NumericProperty(0)
     value = NumericProperty(0)
 
+    def __init__(self, *, span, **kwargs):
+        super(Bar, self).__init__(**kwargs)
+        self.span = span
+        self.popup = self.make_popup(span)
+
+    def on_touch_down(self, touch):
+        if self.is_valid_touch(touch):
+            self.show_breakdown()
+
+    def is_valid_touch(self, touch):
+        """
+        check if the touch is valid
+
+        # Parameters
+        * touch : MouseMotionEvent
+            touch event
+
+        # Returns
+        * _ : bool
+            indicator if the touch is valid or not
+        """
+
+        return abs(touch.x - (self.x + self.width * 0.5)) < self.width * 0.1
+
+    def show_breakdown(self):
+        """
+        show breakdown
+
+        # Parameters
+        * (no parameter)
+
+        # Returns
+        * None
+        """
+
+        self.popup.open()
+
+    def make_popup(self, span):
+        """
+        make popup which shows breakdown
+
+        # Parameters
+        * span : date_handler.Span
+            span of the breakdown
+
+        # Returns
+        * _ : Popup
+            Popup object which shows breakdown in the span
+        """
+
+        breakdown = App.get_running_app().book.get_breakdown(span)
+        breakdown_widget = Breakdown()
+
+        for number, (group, amount) in enumerate(sorted(breakdown.items())):
+            if number % 2 == 1:
+                background_color = [0.5, 0.5, 0.5, 0.25]
+            else:
+                background_color = [0, 0, 0, 0]
+            group_label = BreakdownItem(text=group, halign='left', background_color=background_color)
+            amount_label = BreakdownItem(text=str(amount), halign='right', background_color=background_color)
+
+            breakdown_widget.breakdown_items.add_widget(group_label)
+            breakdown_widget.breakdown_items.add_widget(amount_label)
+
+        title = str(span)
+        content = breakdown_widget
+
+        return Popup(title=title, title_align='center', content=content, size_hint=(0.3, 0.6))
+
+
+class Breakdown(ScrollView):
+    """
+    widget to show breakdown
+    """
+
+    pass
+
+
+class BreakdownItem(Label):
+    """
+    widget for an item of breakdown
+
+    # Attributes
+    * background_color : ListProperty
+        background color of the item represented as rgba
+    """
+
+    background_color = ListProperty(None)
+
 
 class GuiApp(App):
     """
     run the application by CLI
 
     # Attributes
+    * balance_chart : ObjectProperty
+        BalanceChart object handled by the application
     * book : account_book.AccountBook
         account book handled by the application
     """
+
+    balance_chart = ObjectProperty(None)
 
     def __init__(self, **kwargs):
         super(GuiApp, self).__init__(**kwargs)
@@ -670,5 +770,5 @@ class GuiApp(App):
 
     def build(self):
         Builder.load_file('chart.kv')
-        root = BalanceChart(self.book)
-        return root
+        self.balance_chart = BalanceChart(self.book)
+        return self.balance_chart

@@ -68,6 +68,7 @@
         pos:self.parent.pos
         size:self.parent.size
         orientation:'horizontal'
+        padding:20
 
         Spinner:
             id:year_spinner
@@ -142,6 +143,27 @@
         Rectangle:
             pos:[self.x + self.width * 0.4, self.y + self.height * self.origin]
             size:(self.width * 0.2, self.height * self.value)
+
+
+<Breakdown>:
+    breakdown_items:breakdown_items
+
+    GridLayout:
+        id:breakdown_items
+        cols:2
+        height:self.minimum_height
+        size_hint_y:None
+        row_default_height:50
+
+
+<BreakdownItem>:
+    text_size:self.size
+    canvas:
+        Color:
+            rgba:self.background_color
+        Rectangle:
+            pos:self.pos
+            size:self.size
 
 
 <Display>:

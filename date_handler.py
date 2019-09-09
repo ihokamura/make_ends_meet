@@ -16,19 +16,51 @@ class Span(namedtuple('Span', 'start stop')):
     * stop : datetime.date
     """
 
+    def __str__(self):
+        if self.start == self.stop:
+            return self._display_format(self.start, 'ymd')
+        else:
+            start = self._display_format(self.start, 'ymd')
+            stop = self._display_format(self.stop, 'ymd')
+
+            return start + '-' + stop
+
     def __format__(self, format_spec):
         if format_spec == 'year':
-            return str(self.start.isoformat()[:4])
+            return self._display_format(self.start, 'y')
         elif format_spec == 'month':
-            return str(self.start.isoformat()[2:7].replace('-', '/'))
+            return self._display_format(self.start, 'ym')
         elif format_spec == 'week':
-            start = self.start.isoformat()[5:].replace('-', '/')
-            stop = self.stop.isoformat()[5:].replace('-', '/')
+            start = self._display_format(self.start, 'md')
+            stop = self._display_format(self.stop, 'md')
             return start + '-' + stop
         elif format_spec == 'day':
-            return str(self.start.isoformat()[5:].replace('-', '/'))
+            return self._display_format(self.start, 'md')
         else:
             raise ValueError('Invalid format specifier')
+
+    @staticmethod
+    def _display_format(date, flags):
+        """
+        construct display format of date in accordance with flags
+
+        # Parameters
+        * date : datetime.date
+            date to be formatted
+        * flags : str
+            flags to specify the format
+
+        # Returns
+        * _ : str
+            formatted string of the date
+        """
+
+        formats = {
+            'y':'{:04d}'.format(date.year),
+            'm':'{:02d}'.format(date.month),
+            'd':'{:02d}'.format(date.day)}
+
+        return '/'.join(formats[flag] for flag in flags)
 
 
 class Duration:
