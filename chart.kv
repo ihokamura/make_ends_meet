@@ -145,18 +145,29 @@
             size:(self.width * 0.2, self.height * self.value)
 
 
-<Breakdown>:
-    breakdown_items:breakdown_items
+<BreakdownContent>:
+    table:table
+    close_button:close_button
 
-    GridLayout:
-        id:breakdown_items
-        cols:2
-        height:self.minimum_height
-        size_hint_y:None
-        row_default_height:50
+    ScrollView:
+        pos_hint:{'x':0.1, 'y':0.2}
+        size_hint:(0.8, 0.8)
+
+        GridLayout:
+            id:table
+            cols:2
+            height:self.minimum_height
+            size_hint_y:None
+            row_default_height:50
+
+    Button:
+        id:close_button
+        pos_hint:{'x':0.1, 'y':0}
+        size_hint:(0.8, 0.15)
+        text:'close'
 
 
-<BreakdownItem>:
+<BreakdownEntry>:
     text_size:self.size
     canvas:
         Color:

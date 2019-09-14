@@ -21,7 +21,6 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
@@ -607,7 +606,9 @@ class PlotArea(GridLayout):
     def on_size(self, instance, size):
         self._update()
         # expand width of parent if there is not enough space to display all the bars
-        self.parent.width = max(self.parent.width, self.col_default_width * len(self.plot_points))
+        self.parent.width = max(
+            self.parent.width,
+            self.col_default_width * len(self.plot_points))
 
     def on_plot_points(self, instance, plot_points):
         # remove all Bar objects to update chart
@@ -667,7 +668,6 @@ class Bar(Widget):
     def __init__(self, *, span, **kwargs):
         super(Bar, self).__init__(**kwargs)
         self.span = span
-        self.popup = self.make_popup(span)
 
     def on_touch_down(self, touch):
         if self.is_valid_touch(touch):
@@ -699,56 +699,56 @@ class Bar(Widget):
         * None
         """
 
-        self.popup.open()
+        title = str(self.span)
+        content = BreakdownContent(span=self.span)
+        popup = Popup(title=title, title_align='center', content=content, size_hint=(0.5, 0.5))
+        content.close_button.bind(on_release=popup.dismiss)
 
-    def make_popup(self, span):
+        popup.open()
+
+
+class BreakdownContent(FloatLayout):
+    """
+    widget for content of breakdown popup
+    """
+
+    def __init__(self, *, span, **kwargs):
+        super(BreakdownContent, self).__init__(**kwargs)
+        self.make_table(span)
+    
+    def make_table(self, span):
         """
-        make popup which shows breakdown
+        make table of breakdown details
 
         # Parameters
         * span : date_handler.Span
             span of the breakdown
 
         # Returns
-        * _ : Popup
-            Popup object which shows breakdown in the span
+        * None
         """
 
         breakdown = App.get_running_app().book.get_breakdown(span)
-        breakdown_widget = Breakdown()
-
         for number, (group, amount) in enumerate(sorted(breakdown.items())):
             if number % 2 == 1:
                 background_color = [0.5, 0.5, 0.5, 0.25]
             else:
                 background_color = [0, 0, 0, 0]
-            group_label = BreakdownItem(text=group, halign='left', background_color=background_color)
-            amount_label = BreakdownItem(text=str(amount), halign='right', background_color=background_color)
 
-            breakdown_widget.breakdown_items.add_widget(group_label)
-            breakdown_widget.breakdown_items.add_widget(amount_label)
+            group_label = BreakdownEntry(text=group, halign='left', background_color=background_color)
+            self.table.add_widget(group_label)
 
-        title = str(span)
-        content = breakdown_widget
-
-        return Popup(title=title, title_align='center', content=content, size_hint=(0.3, 0.6))
+            amount_label = BreakdownEntry(text=str(amount), halign='right', background_color=background_color)
+            self.table.add_widget(amount_label)
 
 
-class Breakdown(ScrollView):
+class BreakdownEntry(Label):
     """
-    widget to show breakdown
-    """
-
-    pass
-
-
-class BreakdownItem(Label):
-    """
-    widget for an item of breakdown
+    widget for an entry of breakdown table
 
     # Attributes
     * background_color : ListProperty
-        background color of the item represented as rgba
+        background color of the entry represented as rgba
     """
 
     background_color = ListProperty(None)
@@ -775,4 +775,5 @@ class GuiApp(App):
     def build(self):
         Builder.load_file('chart.kv')
         self.balance_chart = BalanceChart(self.book)
+
         return self.balance_chart
