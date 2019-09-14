@@ -170,18 +170,33 @@
     x_axis:x_axis
     y_axis:y_axis
     plot_area:plot_area
-
-    XAxis:
-        id:x_axis
-        pos_hint:{'x':0.1, 'y':0}
-        size_hint:0.9, 0.1
+    view:view
 
     YAxis:
         id:y_axis
         pos_hint:{'x':0, 'y':0.1}
         size_hint:0.1, 0.9
 
-    PlotArea:
-        id:plot_area
-        pos_hint:{'x':0.1, 'y':0.1}
-        size_hint:0.9, 0.9
+    ScrollView:
+        pos_hint:{'x':0.1, 'y':0}
+        size_hint:0.9, 1
+
+        FloatLayout:
+            id:view
+            pos:self.parent.pos
+            size:self.parent.size
+            size_hint_x:None
+
+            XAxis:
+                id:x_axis
+                rows:1
+                col_default_width:200
+                pos_hint:{'x':0, 'y':0}
+                size_hint:1, 0.1
+
+            PlotArea:
+                id:plot_area
+                rows:1
+                col_default_width:200
+                pos_hint:{'x':0, 'y':0.1}
+                size_hint:1, 0.9

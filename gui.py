@@ -9,7 +9,7 @@ import os
 
 # suppress kivy log
 os.environ['KIVY_NO_FILELOG'] = '1'
-#os.environ['KIVY_NO_CONSOLELOG'] = '1'
+os.environ['KIVY_NO_CONSOLELOG'] = '1'
 from kivy.app import App
 from kivy.base import Builder
 from kivy.clock import Clock
@@ -18,6 +18,7 @@ from kivy.graphics import Color, Line
 from kivy.properties import ListProperty, NumericProperty, ObjectProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
@@ -176,7 +177,7 @@ class BalanceChart(Widget):
         self.category = category
         self.update_chart()
 
-    def update_chart(self, num_of_data=0):
+    def update_chart(self):
         """
         update chart
 
@@ -189,12 +190,8 @@ class BalanceChart(Widget):
         * None
         """
 
-        if num_of_data == 0:
-            mapping = {'year':5, 'month':6, 'week':5, 'day':7}
-            num_of_data = mapping[self.duration.period]
-
-        spans = list(span for span in self.duration)[-num_of_data:]
-        amounts = list(self.book.summarize_by_category(self.duration, self.category))[-num_of_data:]
+        spans = list(span for span in self.duration)
+        amounts = list(self.book.summarize_by_category(self.duration, self.category))
 
         self.display.plot_chart(spans, amounts)
 
@@ -388,8 +385,8 @@ class CategoryToggle(ToggleButton):
         super(CategoryToggle, self).__init__(**kwargs)
         self.group = 'category'
 
-    def on_state(self, instance, value):
-        if value == 'down':
+    def on_state(self, instance, state):
+        if state == 'down':
             # invoke callback to update category
             updater = App.get_running_app().balance_chart.updater
             updater.dispatch('on_category', category=self.text)
@@ -445,8 +442,8 @@ class PeriodToggle(ToggleButton):
         super(PeriodToggle, self).__init__(**kwargs)
         self.group = 'period'
 
-    def on_state(self, instance, value):
-        if value == 'down':
+    def on_state(self, instance, state):
+        if state == 'down':
             # invoke callback to update category
             updater = App.get_running_app().balance_chart.updater
             updater.dispatch('on_period', period=self.text)
@@ -515,7 +512,7 @@ class Display(FloatLayout):
         self.plot_area.plot_points = list(zip(spans, values))
 
 
-class XAxis(BoxLayout):
+class XAxis(GridLayout):
     """
     widget for x-axis
 
@@ -530,7 +527,7 @@ class XAxis(BoxLayout):
         super(XAxis, self).__init__(**kwargs)
         self.orientation = 'horizontal'
 
-    def on_labels(self, instance, value):
+    def on_labels(self, instance, labels):
         # remove all Label objects to update labels
         self.clear_widgets()
 
@@ -556,10 +553,10 @@ class YAxis(Widget):
         super(YAxis, self).__init__(**kwargs)
         self.label_widgets = dict()
 
-    def on_size(self, instance, value):
+    def on_height(self, instance, height):
         self._update()
 
-    def on_grid_values(self, instance, value):
+    def on_grid_values(self, instance, grid_values):
         # remove all Label objects to update scales
         self.clear_widgets()
         self.label_widgets.clear()
@@ -586,7 +583,7 @@ class YAxis(Widget):
             self.label_widgets[gv].center_y = self.y + self.height*(gv - self.grid_values[0])/(self.grid_values[-1] - self.grid_values[0])
 
 
-class PlotArea(BoxLayout):
+class PlotArea(GridLayout):
     """
     widget for y-axis
 
@@ -607,19 +604,26 @@ class PlotArea(BoxLayout):
         self.orientation = 'horizontal'
         self.lines = dict()
 
-    def on_size(self, instance, value):
+    def on_size(self, instance, size):
         self._update()
+        # expand width of parent if there is not enough space to display all the bars
+        self.parent.width = max(self.parent.width, self.col_default_width * len(self.plot_points))
 
-    def on_plot_points(self, instance, value):
+    def on_plot_points(self, instance, plot_points):
         # remove all Bar objects to update chart
         self.clear_widgets()
+
+        # restore default width of parent if there is enough space to display all the bars
+        self.parent.width = max(
+            App.get_running_app().balance_chart.display.width * 0.9,
+            self.col_default_width * len(self.plot_points))
 
         for span, v in self.plot_points:
             origin = -self.grid_values[0]/(self.grid_values[-1] - self.grid_values[0])
             value = v/(self.grid_values[-1] - self.grid_values[0])
             self.add_widget(Bar(span=span, origin=origin, value=value))
 
-    def on_grid_values(self, instance, value):
+    def on_grid_values(self, instance, grid_values):
         # clear canvas to update grid lines
         self.canvas.clear()
 
