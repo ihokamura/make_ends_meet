@@ -148,6 +148,8 @@
 <BreakdownContent>:
     table:table
     close_button:close_button
+    prev_button:prev_button
+    next_button:next_button
 
     ScrollView:
         pos_hint:{'x':0.1, 'y':0.2}
@@ -165,6 +167,20 @@
         pos_hint:{'x':0.1, 'y':0}
         size_hint:(0.8, 0.15)
         text:'close'
+
+    Button:
+        id:prev_button
+        pos_hint:{'x':0.025, 'y':0.25}
+        size_hint:(0.05, 0.5)
+        text:'<'
+        bold:True
+
+    Button:
+        id:next_button
+        pos_hint:{'x':0.925, 'y':0.25}
+        size_hint:(0.05, 0.5)
+        text:'>'
+        bold:True
 
 
 <BreakdownEntry>:

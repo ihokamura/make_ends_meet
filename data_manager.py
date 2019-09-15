@@ -68,8 +68,8 @@ GROUP2_MAPPING = {
     '書籍・雑誌':'book and magazine',
     '資格試験':'qualification examination',
     '投資信託':'investment trust',
-    '共済会費':'mutual aid society fee',
-    '年会費':'annual fee',
+    '会費':'membership fee',
+    '手数料':'service charge',
     'その他':'others'
 }
 

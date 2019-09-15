@@ -699,12 +699,69 @@ class Bar(Widget):
         * None
         """
 
-        title = str(self.span)
-        content = BreakdownContent(span=self.span)
-        popup = Popup(title=title, title_align='center', content=content, size_hint=(0.5, 0.5))
-        content.close_button.bind(on_release=popup.dismiss)
-
+        popup = BreakdownPopup(span=self.span, pos_hint={'x':0.5, 'y':0.5}, size_hint=(0.5, 0.5))
         popup.open()
+
+
+class BreakdownPopup(Popup):
+    """
+    widget for breakdown popup
+    """
+
+    def __init__(self, *, span, **kwargs):
+        super(BreakdownPopup, self).__init__(**kwargs)
+        self.title_align = 'center'
+        self.duration_list = list(span for span in App.get_running_app().balance_chart.duration)
+        self.update(span)
+
+    def update(self, span):
+        """
+        update breakdown popup
+
+        # Parameters
+        * span : date_handler.span
+            new span of this popup
+
+        # Returns
+        * None
+        """
+
+        self.span = span
+        self.title = str(self.span)
+        self.content = BreakdownContent(span=self.span)
+        self.content.close_button.bind(on_release=self.dismiss)
+        self.content.prev_button.bind(on_release=self.show_prev)
+        self.content.next_button.bind(on_release=self.show_next)
+
+    def show_prev(self, obj):
+        """
+        show breakdown of the previous span
+
+        # Parameters
+        * obj : Object
+            object invoking this function
+
+        # Returns
+        * None
+        """
+
+        prev_span = self.duration_list[self.duration_list.index(self.span) - 1]
+        self.update(prev_span)
+
+    def show_next(self, obj):
+        """
+        show breakdown of the previous span
+
+        # Parameters
+        * obj : Object
+            object invoking this function
+
+        # Returns
+        * None
+        """
+
+        next_span = self.duration_list[(self.duration_list.index(self.span) + 1) % len(self.duration_list)]
+        self.update(next_span)
 
 
 class BreakdownContent(FloatLayout):
