@@ -1,0 +1,51 @@
+#:kivy 1.11.1
+
+
+<Display>:
+    x_axis:x_axis
+    y_axis:y_axis
+    plot_area:plot_area
+    view:view
+
+    YAxis:
+        id:y_axis
+        pos_hint:{'x':0, 'y':0.1}
+        size_hint:0.1, 0.9
+
+    ScrollView:
+        pos_hint:{'x':0.1, 'y':0}
+        size_hint:0.9, 1
+
+        FloatLayout:
+            id:view
+            pos:self.parent.pos
+            size:self.parent.size
+            size_hint_x:None
+
+            XAxis:
+                id:x_axis
+                rows:1
+                col_default_width:200
+                pos_hint:{'x':0, 'y':0}
+                size_hint:1, 0.1
+
+            PlotArea:
+                id:plot_area
+                rows:1
+                col_default_width:200
+                pos_hint:{'x':0, 'y':0.1}
+                size_hint:1, 0.9
+
+
+<Bar>:
+    canvas:
+        Color:
+            rgba:(1, 0, 0, 0.75)
+        Rectangle:
+            pos:[self.x + self.width * 0.4, self.y + self.height * self.origin]
+            size:(self.width * 0.2, self.height * self.value)
+    Label:
+        pos:[self.parent.x + self.parent.width * 0.4, self.parent.y + self.parent.height * (self.parent.origin + self.parent.value) - (self.parent.value < 0) * self.height]
+        size:self.parent.width * 0.2, self.texture_size[1]
+        text:str(self.parent.amount)
+        halign:'center'

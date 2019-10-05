@@ -1,0 +1,117 @@
+#:kivy 1.11.1
+#:import datetime datetime
+
+
+<Dashboard@FloatLayout>:
+    date_range:date_range
+    category_selector:category_selector
+    period_selector:period_selector
+
+    DateRange:
+        id:date_range
+        pos_hint:{'x':0.05, 'y':0.5}
+        size_hint:0.4, 0.5
+
+    PeriodSelector:
+        id:period_selector
+        pos_hint:{'x':0.5, 'y':0.5}
+        size_hint:0.5, 0.5
+
+    CategorySelector:
+        id:category_selector
+        pos_hint:{'x':0, 'y':0}
+        size_hint:1, 0.5
+
+
+<DateRange>:
+    begin:begin
+    end:end
+    orientation:'horizontal'
+
+    DateSelector:
+        id:begin
+
+    Label:
+        size_hint:0.1, 1
+        text:'-'
+
+    DateSelector:
+        id:end
+
+
+<DateSelector>:
+    id:date_selector
+    year_spinner:year_spinner
+    month_spinner:month_spinner
+    day_spinner:day_spinner
+
+    BoxLayout:
+        pos:self.parent.pos
+        size:self.parent.size
+        orientation:'horizontal'
+        padding:20
+
+        Spinner:
+            id:year_spinner
+            text:str(datetime.date.today().year)
+            values:tuple(str(i) for i in range(min(entry.date.year for entry in app.book), max(entry.date.year for entry in app.book) + 1))
+            on_text:date_selector.update_year()
+
+        Spinner:
+            id:month_spinner
+            text:str(datetime.date.today().month)
+            values:tuple(str(i) for i in range(1, 13))
+            on_text:date_selector.update_month()
+
+        Spinner:
+            id:day_spinner
+            text:str(datetime.date.today().day)
+            values:tuple(str(i) for i in range(1, 32))
+            on_text:date_selector.update_day()
+
+
+<CategorySelector>:
+    income:income
+    outgo:outgo
+    balance:balance
+    orientation:'horizontal'
+    padding:20
+    spacing:20
+
+    CategoryToggle:
+        id:income
+        text:'income'
+
+    CategoryToggle:
+        id:outgo
+        text:'outgo'
+
+    CategoryToggle:
+        id:balance
+        text:'balance'
+
+
+<PeriodSelector>:
+    day:day
+    week:week
+    month:month
+    year:year
+    orientation:'horizontal'
+    padding:20
+    spacing:20
+
+    PeriodToggle:
+        id:day
+        text:'day'
+
+    PeriodToggle:
+        id:week
+        text:'week'
+
+    PeriodToggle:
+        id:month
+        text:'month'
+
+    PeriodToggle:
+        id:year
+        text:'year'

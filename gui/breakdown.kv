@@ -1,0 +1,49 @@
+#:kivy 1.11.1
+
+
+<BreakdownContent>:
+    table:table
+    close_button:close_button
+    prev_button:prev_button
+    next_button:next_button
+
+    ScrollView:
+        pos_hint:{'x':0.1, 'y':0.2}
+        size_hint:(0.8, 0.8)
+
+        GridLayout:
+            id:table
+            cols:2
+            height:self.minimum_height
+            size_hint_y:None
+            row_default_height:50
+
+    Button:
+        id:close_button
+        pos_hint:{'x':0.1, 'y':0}
+        size_hint:(0.8, 0.15)
+        text:'close'
+
+    Button:
+        id:prev_button
+        pos_hint:{'x':0.025, 'y':0.25}
+        size_hint:(0.05, 0.5)
+        text:'<'
+        bold:True
+
+    Button:
+        id:next_button
+        pos_hint:{'x':0.925, 'y':0.25}
+        size_hint:(0.05, 0.5)
+        text:'>'
+        bold:True
+
+
+<BreakdownEntry>:
+    text_size:self.size
+    canvas:
+        Color:
+            rgba:self.background_color
+        Rectangle:
+            pos:self.pos
+            size:self.size

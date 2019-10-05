@@ -1,0 +1,20 @@
+#:kivy 1.11.1
+
+<BalanceChart>:
+    display:display
+    dashboard:dashboard
+
+    BoxLayout:
+        pos:self.parent.pos
+        size:self.parent.size
+        orientation:'vertical'
+        padding:50
+        spacing:10
+
+        Display:
+            id:display
+            size_hint:1, 0.8
+
+        Dashboard:
+            id:dashboard
+            size_hint:1, 0.2

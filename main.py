@@ -5,7 +5,7 @@ run the application
 import sys
 
 from cli import CliApp
-from gui import GuiApp
+from gui.gui import GuiApp
 
 
 class App:
