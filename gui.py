@@ -619,17 +619,17 @@ class PlotArea(GridLayout):
             App.get_running_app().balance_chart.display.width * 0.9,
             self.col_default_width * len(self.plot_points))
 
-        for span, v in self.plot_points:
+        for span, amount in self.plot_points:
             origin = -self.grid_values[0]/(self.grid_values[-1] - self.grid_values[0])
-            value = v/(self.grid_values[-1] - self.grid_values[0])
-            self.add_widget(Bar(span=span, origin=origin, value=value))
+            value = amount/(self.grid_values[-1] - self.grid_values[0])
+            self.add_widget(Bar(span=span, amount=amount, origin=origin, value=value))
 
     def on_grid_values(self, instance, grid_values):
         # clear canvas to update grid lines
         self.canvas.clear()
 
         with self.canvas:
-            Color(rgba=(0, 1, 1, 1))
+            Color(rgba=(0, 1, 1, 0.5))
             for gv in self.grid_values:
                 line = Line(width=1.5)
                 self.lines[gv] = line
@@ -662,12 +662,14 @@ class Bar(Widget):
         value of the bar
     """
 
+    amount = NumericProperty(0)
     origin = NumericProperty(0)
     value = NumericProperty(0)
 
-    def __init__(self, *, span, **kwargs):
+    def __init__(self, *, span, amount, **kwargs):
         super(Bar, self).__init__(**kwargs)
         self.span = span
+        self.amount = amount
 
     def on_touch_down(self, touch):
         if self.is_valid_touch(touch):
