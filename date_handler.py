@@ -146,9 +146,10 @@ def generate_year_span(begin, end):
         spans within the duration in a year period
     """
 
-    start = date(begin.year, 1, 1)
+    start = begin
     while True:
-        stop = date(start.year, 12, 31)
+        increment = 365 - (not calendar.isleap(start.year))
+        stop = start + increment*date.resolution
 
         yield Span(start, stop)
 
@@ -174,9 +175,10 @@ def generate_month_span(begin, end):
         spans within the duration in a month period
     """
 
-    start = date(begin.year, begin.month, 1)
+    start = begin
     while True:
-        stop = start + (calendar.monthrange(start.year, start.month)[1] - 1)*date.resolution
+        increment = calendar.monthlen(start.year, start.month) - 1
+        stop = start + increment*date.resolution
 
         yield Span(start, stop)
 
@@ -202,7 +204,7 @@ def generate_week_span(begin, end):
         spans within the duration in a week period
     """
 
-    start = begin - begin.weekday()*date.resolution
+    start = begin
     while True:
         stop = start + 6*date.resolution
 
