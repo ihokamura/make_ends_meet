@@ -140,7 +140,7 @@ class DateSelector(Widget):
         * None
         """
 
-        _, last = calendar.monthrange(int(self.year_spinner.text), int(self.month_spinner.text))
+        last = calendar.monthlen(int(self.year_spinner.text), int(self.month_spinner.text))
         self.day_spinner.values = tuple(str(d) for d in range(1, last + 1))
         if int(self.day_spinner.text) > last:
             self.date = datetime.date(int(self.year_spinner.text), int(self.month_spinner.text), last)

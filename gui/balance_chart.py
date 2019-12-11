@@ -2,6 +2,7 @@
 implement balance chart
 """
 
+import calendar
 import datetime
 
 from kivy.clock import Clock
@@ -28,10 +29,15 @@ class BalanceChart(Widget):
 
     def __init__(self, book, **kwargs):
         super(BalanceChart, self).__init__(**kwargs)
-        self.duration = date_handler.Duration(datetime.date.today(), datetime.date.today())
-        self.category = 'balance'
         self.book = book
         self.updater = BalanceChartUpdater()
+
+        # set default values
+        year, month = datetime.date.today().year, datetime.date.today().month
+        begin = datetime.date(year, month, 1)
+        end = datetime.date(year, month, calendar.monthlen(year, month))
+        self.duration = date_handler.Duration(begin, end)
+        self.category = 'balance'
 
         # initialize user interface after creating the instance
         init_trigger = Clock.create_trigger(self.init_ui)
