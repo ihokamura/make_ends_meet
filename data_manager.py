@@ -9,7 +9,7 @@ from shutil import copyfile
 
 
 # translation mapping
-GROUP1_MAPPING = {
+GROUP_MAIN_TRANSLATION_TABLE = {
     '収入':'income',
     '社会保障':'social security',
     '住宅':'housing',
@@ -26,7 +26,7 @@ GROUP1_MAPPING = {
     'その他':'others'
 }
 
-GROUP2_MAPPING = {
+GROUP_SUB_TRANSLATION_TABLE = {
     '給与':'salary',
     '賞与':'bonus',
     '時間外手当':'overtime pay',
@@ -74,6 +74,114 @@ GROUP2_MAPPING = {
 }
 
 
+# groups classification
+GROUPS_CLASSIFICATION = {
+    'income':
+    (
+        'salary',
+        'bonus',
+        'overtime pay',
+        'housing allowance',
+        'commutation allowance',
+        'region allowance',
+        'travel allowance',
+        'company expense',
+        'deduction by holiday adjustment',
+        'others'
+    ),
+    'social security':
+    (
+        'income tax',
+        'resident tax',
+        'pension',
+        'health insurance',
+        'unemployment insurance',
+        'others'
+    ),
+    'housing':
+    (
+        'house rent',
+        'guaranty money',
+        'house repairs',
+        'others'
+    ),
+    'infrastructure':
+    (
+        'gas bill',
+        'electricity bill',
+        'warter bill',
+        'others'
+    ),
+    'communication':
+    (
+        'cellphone',
+        'internet',
+        'others'
+    ),
+    'transportation':
+    (
+        'commuter ticket',
+        'public transportation',
+        'others'
+    ),
+    'medical treatment':
+    (
+        'hospital',
+        'drug store',
+        'others'
+    ),
+    'food':
+    (
+        'foodstuffs',
+        'prepared food',
+        'others'
+    ),
+    'necessities':
+    (
+        'daily necessities',
+        'furniture',
+        'electrical appliances',
+        'electronic equipment',
+        'others'
+    ),
+    'fashion':
+    (
+        'clothing and shoes',
+        'haircut',
+        'cleaning',
+        'bag and accessories',
+        'others'
+    ),
+    'learning':
+    (
+        'book and magazine',
+        'qualification examination',
+        'others'
+    ),
+    'investment':
+    (
+        'investment trust',
+        'others'
+    ),
+    'recreation':
+    (
+        'membership fee',
+        'service charge',
+        'others'
+    ),
+    'others':
+    (
+        'food service',
+        'leisure',
+        'others'
+    )
+}
+
+
+# tuple of groups related to the entry
+Groups = namedtuple('Groups', 'main, sub')
+
+
 class Entry(namedtuple('Entry', 'date, income, outgo, groups')):
     """
     represent entry of account book
@@ -82,7 +190,7 @@ class Entry(namedtuple('Entry', 'date, income, outgo, groups')):
     * date : datetime.date
     * income : int
     * outgo : int
-    * groups : tuple
+    * groups : Groups
         tuple of groups related to the entry
     """
 
@@ -139,25 +247,25 @@ def generate_entries(file):
         """
 
         # copy the original file for fail-safe
-        TMP_FILE = 'tmp.csv'
-        copyfile(file, TMP_FILE)
+        tmp_file = 'tmp.csv'
+        copyfile(file, tmp_file)
 
-        with open(file=TMP_FILE, mode='r', encoding='utf-8') as fileobj:
+        with open(file=tmp_file, mode='r', encoding='utf-8') as fileobj:
             reader = csv.reader(fileobj)
 
             # get indices from header
             header = next(reader)
-            INDEX_DATE = header.index('日付')
-            INDEX_INCOME = header.index('収入金額')
-            INDEX_OUTGO = header.index('支出金額')
-            INDEX_GROUP1 = header.index('大分類')
-            INDEX_GROUP2 = header.index('小分類')
+            index_date = header.index('日付')
+            index_income = header.index('収入金額')
+            index_outgo = header.index('支出金額')
+            index_group_main = header.index('大分類')
+            index_group_sub = header.index('小分類')
 
             # read each rows to yield entries of account book
             for row in reader:
-                date = datetime.date.fromisoformat(row[INDEX_DATE])
-                income = int(row[INDEX_INCOME])
-                outgo = int(row[INDEX_OUTGO])
-                groups = (GROUP1_MAPPING[row[INDEX_GROUP1]], GROUP2_MAPPING[row[INDEX_GROUP2]])
+                date = datetime.date.fromisoformat(row[index_date])
+                income = int(row[index_income])
+                outgo = int(row[index_outgo])
+                groups = Groups(GROUP_MAIN_TRANSLATION_TABLE[row[index_group_main]], GROUP_SUB_TRANSLATION_TABLE[row[index_group_sub]])
 
                 yield Entry(date, income, outgo, groups)

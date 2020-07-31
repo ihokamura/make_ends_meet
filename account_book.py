@@ -77,12 +77,15 @@ class AccountBook:
         """
 
         breakdown = defaultdict(int)
-
         for entry in self:
             if span.start <= entry.date <= span.stop:
-                breakdown[entry.groups[0]] += (entry.income + entry.outgo)
+                breakdown[entry.groups] += (entry.income + entry.outgo)
 
-        return breakdown
+        summary = defaultdict(int)
+        for groups in breakdown.keys():
+            summary[groups.main] += breakdown[groups]
+
+        return summary, breakdown
 
     def _sum_income(self, span, groups=None):
         """

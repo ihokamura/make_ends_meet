@@ -78,7 +78,7 @@ class BreakdownContent(FloatLayout):
     def __init__(self, *, span, **kwargs):
         super(BreakdownContent, self).__init__(**kwargs)
         self.make_table(span)
-    
+
     def make_table(self, span):
         """
         make table of breakdown details
@@ -91,14 +91,14 @@ class BreakdownContent(FloatLayout):
         * None
         """
 
-        breakdown = App.get_running_app().book.get_breakdown(span)
-        for number, (group, amount) in enumerate(sorted(breakdown.items())):
+        summary, _ = App.get_running_app().book.get_breakdown(span)
+        for number, (groups, amount) in enumerate(sorted(summary.items())):
             if number % 2 == 1:
                 background_color = [0.5, 0.5, 0.5, 0.25]
             else:
                 background_color = [0, 0, 0, 0]
 
-            group_label = BreakdownEntry(text=group, halign='left', background_color=background_color)
+            group_label = BreakdownEntry(text=groups, halign='left', background_color=background_color)
             self.table.add_widget(group_label)
 
             amount_label = BreakdownEntry(text=str(amount), halign='right', background_color=background_color)
