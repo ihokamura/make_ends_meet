@@ -148,8 +148,8 @@ def generate_year_span(begin, end):
 
     start = begin
     while True:
-        increment = 365 - (not calendar.isleap(start.year))
-        stop = start + increment*date.resolution
+        increment = date(start.year + 1, 1, 1) - date(start.year, 1, 1)
+        stop = start + increment
 
         yield Span(start, stop)
 
@@ -177,8 +177,8 @@ def generate_month_span(begin, end):
 
     start = begin
     while True:
-        increment = calendar.monthlen(start.year, start.month) - 1
-        stop = start + increment*date.resolution
+        increment = date(start.year + start.month//12, start.month%12 + 1, 1) - date(start.year, start.month, 1) - 1*date.resolution
+        stop = start + increment
 
         yield Span(start, stop)
 

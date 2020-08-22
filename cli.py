@@ -8,6 +8,10 @@ from account_book import AccountBook
 from date_handler import Duration
 
 
+COLUMN_WIDTH = 11
+CATEGORIES = ('income', 'outgo', 'balance')
+
+
 class CliApp:
     """
     run the application by CLI
@@ -31,10 +35,13 @@ class CliApp:
         * None
         """
 
+        title_line = 'period'.rjust(COLUMN_WIDTH) + '|'
+        title_line += '|'.join(category.rjust(COLUMN_WIDTH) for category in CATEGORIES)
+        ruled_line = '-' * COLUMN_WIDTH + ('+' + '-' * COLUMN_WIDTH) * len(CATEGORIES)
+
         while True:
             try:
                 duration = input_duration()
-                category = input_category()
             except ValueError:
                 # have a user input again
                 continue
@@ -43,10 +50,18 @@ class CliApp:
                 print('')
                 break
 
-            ruled_line = '-' * 20
+            amounts = dict()
+            for category in CATEGORIES:
+                amounts[category] = list(self.book.summarize_by_category(duration, category))
+
+            print('<summary>')
+            print(title_line)
             print(ruled_line)
-            for span, amount in zip(duration, self.book.summarize_by_category(duration, category)):
-                print(format(span, duration.period) + format(amount, '7d'))
+            for i, span in enumerate(duration):
+                line = format(span, duration.period).rjust(COLUMN_WIDTH)
+                for category in CATEGORIES:
+                    line += '|' + format(amounts[category][i], str(COLUMN_WIDTH) + 'd')
+                print(line)
             print(ruled_line)
 
             print('Continue?')
@@ -72,7 +87,7 @@ def input_duration():
     print('Input begin and end of summary in the format "YYYY-MM-DD".')
     try:
         begin = date.fromisoformat(input('begin:'))
-        end = date.fromisoformat(input('end:'))
+        end = date.fromisoformat(input('end  :'))
     except ValueError:
         print('[Error] invalid date')
         raise ValueError
@@ -87,26 +102,4 @@ def input_duration():
         return Duration(begin, end, period)
     except ValueError:
         print('[Error] invalid period')
-        raise ValueError
-
-
-def input_category():
-    """
-    have a user input category
-
-    # Parameters
-    * (no parameters)
-
-    # Returns
-    * category : str
-        category by which the account book is summarized
-    """
-
-    # input category
-    print('Input category of summary(income/outgo/balance).')
-    category = input('category:')
-    if category in ('income', 'outgo', 'balance'):
-        return category
-    else:
-        print('[Error] invalid category')
         raise ValueError
