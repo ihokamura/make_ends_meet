@@ -23,6 +23,10 @@ class CliApp:
 
     def __init__(self):
         self.book = AccountBook.fromfile('source_data.csv')
+        today = date.today()
+        self.default_begin = date(today.year - int(today.month < 6), (today.month - 6)%12 + 1, 1)
+        self.default_end = date(today.year + today.month//12, today.month%12 + 1, 1) - 1*date.resolution
+        self.default_period = 'month'
 
     def run(self):
         """
@@ -41,7 +45,7 @@ class CliApp:
 
         while True:
             try:
-                duration = input_duration()
+                duration = self.input_duration()
             except ValueError:
                 # have a user input again
                 continue
@@ -66,40 +70,65 @@ class CliApp:
 
             print('Continue?')
             user_choice = input('yes/no:')
-            if user_choice.lower()[0] != 'y':
+            if (len(user_choice) == 0) or (user_choice.lower()[0] != 'y'):
                 # quit the application
                 break
 
 
-def input_duration():
+    def input_duration(self):
+        """
+        have a user input duration
+
+        # Parameters
+        * (no parameters)
+
+        # Returns
+        * _ : date_handler.Duration
+            duration within which the account book is summarized
+        """
+
+        # input begin and end
+        print('Input begin and end of summary in the format "YYYY-MM-DD".')
+        begin = input_date('begin:', self.default_begin)
+        end = input_date('end  :', self.default_end)
+        if begin > end:
+            print('[Error] begin must be less than or equal to end')
+            raise ValueError
+
+        # input period
+        print('Input period of summary.')
+        period = input('period:')
+        if len(period) == 0:
+            period = self.default_period
+
+        try:
+            return Duration(begin, end, period)
+        except ValueError:
+            print('[Error] invalid period')
+            raise ValueError
+
+
+def input_date(input_message, default_date):
     """
-    have a user input duration
+    have a user input date
 
     # Parameters
-    * (no parameters)
+    * input_message : str
+        prompt message before user input
+    * default_date : datetime.date
+        default date in case of empty user input
 
     # Returns
-    * _ : date_handler.Duration
-        duration within which the account book is summarized
+    * _ : datetime.date
+        date converted from user input
     """
 
-    # input begin and end
-    print('Input begin and end of summary in the format "YYYY-MM-DD".')
-    try:
-        begin = date.fromisoformat(input('begin:'))
-        end = date.fromisoformat(input('end  :'))
-    except ValueError:
-        print('[Error] invalid date')
-        raise ValueError
-    if begin > end:
-        print('[Error] begin must be less than or equal to end')
-        raise ValueError
-
-    # input period
-    print('Input period of summary.')
-    period = input('period:')
-    try:
-        return Duration(begin, end, period)
-    except ValueError:
-        print('[Error] invalid period')
-        raise ValueError
+    user_input = input(input_message)
+    if len(user_input) == 0:
+        return default_date
+    else:
+        try:
+            return date.fromisoformat(user_input)
+        except ValueError:
+            print('[Error] invalid date')
+            raise ValueError
