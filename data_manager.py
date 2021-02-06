@@ -70,6 +70,7 @@ GROUP_SUB_TRANSLATION_TABLE = {
     '投資信託':'investment trust',
     '会費':'membership fee',
     '手数料':'service charge',
+    '寄付':'donation',
     'その他':'others'
 }
 
@@ -173,6 +174,7 @@ GROUPS_CLASSIFICATION = {
     (
         'food service',
         'leisure',
+        'donation',
         'others'
     )
 }

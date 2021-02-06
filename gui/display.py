@@ -90,7 +90,7 @@ class XAxis(GridLayout):
 
     def __init__(self, **kwargs):
         super(XAxis, self).__init__(**kwargs)
-        self.orientation = 'horizontal'
+        self.orientation = 'lr-tb'
 
     def on_labels(self, instance, labels):
         # remove all Label objects to update labels
@@ -166,7 +166,7 @@ class PlotArea(GridLayout):
 
     def __init__(self, **kwargs):
         super(PlotArea, self).__init__(**kwargs)
-        self.orientation = 'horizontal'
+        self.orientation = 'lr-tb'
         self.lines = dict()
 
     def on_size(self, instance, size):

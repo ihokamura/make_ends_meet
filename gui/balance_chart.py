@@ -35,7 +35,7 @@ class BalanceChart(Widget):
         # set default values
         year, month = datetime.date.today().year, datetime.date.today().month
         begin = datetime.date(year, month, 1)
-        end = datetime.date(year, month, calendar.monthlen(year, month))
+        end = datetime.date(year, month, calendar.monthrange(year, month)[1])
         self.duration = date_handler.Duration(begin, end)
         self.category = 'balance'
 
