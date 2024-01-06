@@ -33,8 +33,11 @@ class BalanceChart(Widget):
         self.updater = BalanceChartUpdater()
 
         # set default values
+        default_range_of_month = 6
+        threshold = default_range_of_month - 1
         year, month = datetime.date.today().year, datetime.date.today().month
-        begin = datetime.date(year, month, 1)
+        begin_year, begin_month = (year, month - threshold) if month > threshold else (year - 1, month - threshold + 12)
+        begin = datetime.date(begin_year, begin_month, 1)
         end = datetime.date(year, month, calendar.monthrange(year, month)[1])
         self.duration = date_handler.Duration(begin, end)
         self.category = 'balance'
