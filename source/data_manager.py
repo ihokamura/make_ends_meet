@@ -2,11 +2,10 @@
 manage data
 """
 
-from collections import namedtuple
 import csv
 import datetime
+from collections import namedtuple
 from shutil import copyfile
-
 
 # translation mapping
 GROUP_MAIN_TRANSLATION_TABLE = {
@@ -36,6 +35,7 @@ GROUP_SUB_TRANSLATION_TABLE = {
     '地域手当':'region allowance',
     '出張手当':'travel allowance',
     '経費':'company expense',
+    '利息':'interest',
     '代休控除':'deduction by holiday adjustment',
     '所得税':'income tax',
     '住民税':'resident tax',
@@ -90,6 +90,7 @@ GROUPS_CLASSIFICATION = {
         'travel allowance',
         'company expense',
         'deduction by holiday adjustment',
+        'interest'
         'others'
     ),
     'social security':
