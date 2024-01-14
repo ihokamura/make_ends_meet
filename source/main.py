@@ -4,8 +4,11 @@ run the application
 
 import sys
 
-from cli import CliApp
-from gui.gui import GuiApp
+app_type = sys.argv[-1]
+if app_type == 'gui':
+    from gui.gui import GuiApp
+else:
+    from cli import CliApp
 
 
 class App:
@@ -59,7 +62,6 @@ Option:
 '''
 
 if __name__ == '__main__':
-    app_type = sys.argv[-1]
     if app_type in ('cli', 'gui'):
         main(app_type)
     else:
